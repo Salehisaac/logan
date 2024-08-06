@@ -4,7 +4,7 @@ BINARY_NAME=log_reader
 
 
 build:
-	go build -o $(BINARY_NAME) .
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BINARY_NAME) .
 
 
 run: build

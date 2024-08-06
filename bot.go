@@ -7,8 +7,6 @@ import (
 	"os"
 
 	
-
-
 	_ "github.com/go-sql-driver/mysql"
 	
 	"github.com/joho/godotenv"
@@ -20,7 +18,7 @@ import (
 
 func NewBot() (*Bot , error) {
 
-    //reading the botToken from .env
+    
     err := godotenv.Load() 
     if err != nil {
         log.Println("Error loading .env file")

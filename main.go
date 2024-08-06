@@ -16,8 +16,8 @@ import (
 	"sort"
 	"sync"
     "io"
-
 	"github.com/joho/godotenv"
+    "log_reader/stream"
 )
 
 
@@ -39,24 +39,20 @@ var client_system string
 var pwd string
 var streamFlag bool
 
+
 const mb = 1024 * 1024
 
 func init() {
     flag.BoolVar(&streamFlag, "s", false, "Activate stream mode")
 }
-
 func main(){
     flag.Parse()
-
-
-
     err := godotenv.Load() 
     if err != nil {
         log.Println("Error loading .env file")
     }
+
 	path := os.Getenv("LOGS_PATH")
-
-
 	fmt.Print("phone/duration: ")
     scanner := bufio.NewScanner(os.Stdin)
     scanner.Scan()
@@ -131,56 +127,60 @@ func main(){
 		return
 	}
 
-   
+    if streamFlag{
+        stream.StartStream(phoneNumber, client_system, pwd)
+    }else{
 
-    start := time.Now()
+        start := time.Now()
 
-	currentTime := time.Now()
-	pastTime := currentTime.Add(-duration)
-
-
-    clientDirPath := fmt.Sprintf("./logs/%s", phoneNumber) 
-    _, err = os.Stat(clientDirPath)
-    if os.IsNotExist(err) {
-        err = os.MkdirAll(clientDirPath, os.ModePerm)
+        currentTime := time.Now()
+        pastTime := currentTime.Add(-duration)
+    
+    
+        clientDirPath := fmt.Sprintf("./logs/%s", phoneNumber) 
+        _, err = os.Stat(clientDirPath)
+        if os.IsNotExist(err) {
+            err = os.MkdirAll(clientDirPath, os.ModePerm)
+            if err != nil {
+                log.Fatalf("Failed to create directory: %v", err)
+            }
+        }
+       
+        pastTimeStr := pastTime.Format("2006-01-02_15-04-05")
+        dirName := fmt.Sprintf("./logs/%s/%s_logs_%s",phoneNumber, pastTimeStr, client_system)
+        err = os.MkdirAll(dirName, os.ModePerm)
         if err != nil {
             log.Fatalf("Failed to create directory: %v", err)
         }
-    }
-   
-    pastTimeStr := pastTime.Format("2006-01-02_15-04-05")
-    dirName := fmt.Sprintf("./logs/%s/%s_logs_%s",phoneNumber, pastTimeStr, client_system)
-    err = os.MkdirAll(dirName, os.ModePerm)
-    if err != nil {
-        log.Fatalf("Failed to create directory: %v", err)
-    }
-
-
-
-    directories := getLogDirs()
-    files := getLogFiles(directories)
-
-    fmt.Println("Processing...")
-    processTraces(pastTime) 
-
-    var wg sync.WaitGroup
-
-   
-	for _, file := range files {
-		wg.Add(1) 
-		go func(file string) {
-			defer wg.Done() 
-			processFileLogs(pastTime, file)
-		}(file)
-	}
-	wg.Wait() 
-    end := time.Since(start)
-
-    writeLogsToFiles(dirName)
     
-    fmt.Printf("Application runtime: %v\n", end)
-}
+    
+    
+        directories := getLogDirs()
+        files := getLogFiles(directories)
+    
+        fmt.Println("Processing...")
+        processTraces(pastTime) 
+    
+        var wg sync.WaitGroup
+    
+       
+        for _, file := range files {
+            wg.Add(1) 
+            go func(file string) {
+                defer wg.Done() 
+                processFileLogs(pastTime, file)
+            }(file)
+        }
+        wg.Wait() 
+        end := time.Since(start)
+    
+        writeLogsToFiles(dirName)
+        
+        fmt.Printf("Application runtime: %v\n", end)
 
+    }
+   
+}
 func processTraces(pastTime time.Time) {
 
     
@@ -222,7 +222,6 @@ func processTraces(pastTime time.Time) {
         wg.Wait()
      }
 }
-
 func readTraces(offset int64, limit int64, fileName string, pastTime time.Time){
 
     file, err := os.Open(fileName)
@@ -307,7 +306,6 @@ func processFileLogs(pastTime time.Time, filePath string) {
 
 	wg.Wait()
 }
-
 func getLogDirs() []string {
     directories := []string{"session","status","authsession", "bff", "msg" ,"idgen", "biz", "sync", "media"}
 
@@ -377,7 +375,7 @@ func writeLogsToFiles(dirName string) {
             file.WriteString(string(logLine) + "\n")
         }
     }
-
+    fmt.Println()
     fmt.Println("Files have been written in logs dir")
 }
 func extractTimeFromLog(line string) (time.Time) {
@@ -440,7 +438,6 @@ func extractLevelFromLog(line string) (string) {
 
     return level
 }
-
 func read(offset int64, limit int64, fileName string, pastTime time.Time) {
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -499,7 +496,6 @@ func read(offset int64, limit int64, fileName string, pastTime time.Time) {
 		}
 	}
 }
-
 func getEnteries(line string) (string, string) {
     line_part := strings.Split(line, " ")
   
@@ -559,40 +555,3 @@ func checkPathValidation(path string)(bool, error){
     return true, nil
 }
 
-
-func stramTraces(fileName string){
-    filePath := filepath.Join(pwd, fileName)
-    file, err := os.Open(filePath)
-    if err != nil {
-        fmt.Printf("Error opening file %s: %v\n", filePath, err)
-        return
-    }
-    defer file.Close()
-
- 
-    _, err = file.Seek(0, os.SEEK_END)
-    if err != nil {
-        fmt.Printf("Error seeking end of file %s: %v\n", filePath, err)
-        return
-    }
-
-    reader := bufio.NewReader(file)
-    for {
-        _, err := reader.ReadString('\n')
-        if err != nil {
-            if err.Error() == "EOF" {
-                time.Sleep(1 * time.Second)
-                continue
-            }
-            fmt.Printf("Error reading file %s: %v\n", filePath, err)
-            return
-        }
-        if fileName == "session/access.log" {
-            // wait <- struct{}{}
-            
-        }else{
-            fmt.Println("bff")
-           
-        }
-    }
-}
