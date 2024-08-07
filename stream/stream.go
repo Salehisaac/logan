@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"sync"
 	"time"
 	"strings"
 	"io"
@@ -25,20 +24,19 @@ type LogEntry struct {
 
 var authKey string
 var traces []string
-var tracesMap = make(map[string][]LogEntry)
-var mu sync.Mutex
 var client_system string
 var pwd string
 
 var base_log_path string
 
-func StartStream(phoneNumber, system, pathToLogs  string ){
+func StartStream(phoneNumber, system, pathToLogs, userAuthKey  string ){
 	
+    authKey = userAuthKey
 	client_system = system
 	pwd = pathToLogs
     files := []string{"session/access.log", "bff/access.log"}
     resultChan := make(chan string)
-    streamTraces(files, resultChan)
+   
 
     
     clientDirPath := fmt.Sprintf("./stream/logs/%s", phoneNumber) 
@@ -65,10 +63,11 @@ func StartStream(phoneNumber, system, pathToLogs  string ){
     }
     logFiles := getLogFiles(directories)
 
+    streamTraces(files, resultChan, logFiles)
 
-    for _, file := range logFiles{
-       go streamLogs(file)
-    }
+    // for _, file := range logFiles{
+    //    go streamLogs(file)
+    // }
 
 	for trace := range resultChan {
 		if !traceExists(trace){
@@ -77,49 +76,52 @@ func StartStream(phoneNumber, system, pathToLogs  string ){
 	}
 }
 
-func streamTraces(fileNames []string, resultChan chan<-string) {
-
-	var wg sync.WaitGroup
-	
+func streamTraces(fileNames []string, resultChan chan<-string, logFiles []string ) {
 
 	for _, fileName := range fileNames {
-		go processFileForTrace(fileName, resultChan, &wg)
+		go processFileForTrace(fileName, resultChan, logFiles)
 	}
 
 }
 
-func streamLogs(fileName string){
-   
+func streamLogs(fileName, trace string) {
     parts := strings.Split(fileName, "/")
     dir := parts[len(parts)-2]
     logFile := parts[len(parts)-1]
 
-	file, err := os.Open(fileName)
-	if err != nil {
-		fmt.Printf("Error opening file %s: %v\n", fileName, err)
-		return
-	}
-	defer file.Close()
+    file, err := os.Open(fileName)
+    if err != nil {
+        fmt.Printf("Error opening file %s: %v\n", fileName, err)
+        return
+    }
+    defer file.Close()
 
-	_, err = file.Seek(0, io.SeekEnd)
-	if err != nil {
-		fmt.Printf("Error seeking to end of file %s: %v\n", fileName, err)
-		return
-	}
+    _, err = file.Seek(0, io.SeekEnd)
+    if err != nil {
+        fmt.Printf("Error seeking to end of file %s: %v\n", fileName, err)
+        return
+    }
 
-	reader := bufio.NewReader(file)
+    reader := bufio.NewReader(file)
+    timeout := time.After(10 * time.Second) 
 
-	for {
-        time.Sleep(1 * time.Second)
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			continue 
-		}
+    for {
+        select {
+        case <-timeout:
+            return
+        default:
+            line, err := reader.ReadString('\n')
+            if err != nil {
+                if err == io.EOF {
+                    time.Sleep(100 * time.Millisecond) 
+                    continue
+                }
+                fmt.Printf("Error reading line from file %s: %v\n", fileName, err)
+                return
+            }
 
-		log_trace := extractTraceFromLog(line)
+            log_trace := extractTraceFromLog(line)
 
-
-        for _, trace := range traces{
             if log_trace == trace {
                 level := extractLevelFromLog(line)
                 caller := extractCallerFromLog(line)
@@ -128,24 +130,22 @@ func streamLogs(fileName string){
 
                 log_entry := LogEntry{
                     Timestamp: timeStamp,
-                    Content: content,
-                    Caller: caller,
-                    Trace: trace,
-                    Level: level,
-                    FileName: fileName,
+                    Content:   content,
+                    Caller:    caller,
+                    Trace:     trace,
+                    Level:     level,
+                    FileName:  fileName,
                 }
-                fmt.Printf("%s => Caller : %s, Level: %s, Trace: %s\n\n", fileName,caller , level, log_trace)
+                fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, caller, level, log_trace)
                 pathToWrite := fmt.Sprintf("%s/%s/%s", base_log_path, dir, logFile)
                 writeLogs(log_entry, pathToWrite)
-                break
             }
-        } 
-		time.Sleep(100 * time.Millisecond)
-	}
+            time.Sleep(100 * time.Millisecond)
+        }
+    }
 }
 
-func processFileForTrace(fileName string, resultChan chan<- string, wg *sync.WaitGroup) {
-	defer wg.Done()
+func processFileForTrace(fileName string, resultChan chan<- string, logFiles []string) {
 
 	filePath := filepath.Join(pwd, fileName)
 	file, err := os.Open(filePath)
@@ -162,7 +162,7 @@ func processFileForTrace(fileName string, resultChan chan<- string, wg *sync.Wai
 	}
 
 	reader := bufio.NewReader(file)
-	re := regexp.MustCompile(`perm_auth_key_id:\s*(\d+)`)
+	re := regexp.MustCompile(`perm_auth_key_id:\s*(-?\d+)`)
 
 	for {
 		line, err := reader.ReadString('\n')
@@ -174,16 +174,18 @@ func processFileForTrace(fileName string, resultChan chan<- string, wg *sync.Wai
 		content := extractContentFromLog(line)
 		match := re.FindStringSubmatch(content)
 
-		if len(match) > 0 {
+		if len(match) > 0 && match[1] == authKey {
 			if !traceExists(trace) {
 				resultChan <- trace
+                for _, file := range logFiles{
+                    go streamLogs(file, trace)
+                 }
 			}
 		}
 
 		time.Sleep(100 * time.Millisecond)
 	}
 }
-
 func traceExists(trace string) bool {
     for _, t := range traces {
         if t == trace {
@@ -192,33 +194,6 @@ func traceExists(trace string) bool {
     }
     return false
 }
-
-func getEnteries(line string) (string) {
-    line_part := strings.Split(line, " ")
-  
-    if len(line_part) != 1 {
-        log.Fatal("not enough arguments")
-    }
-
-    phoneNumber := line_part[0]
-
-    return phoneNumber
-}
-
-func checkPathValidation(path string)(bool, error){
-    info, err := os.Stat(path)
-    if os.IsNotExist(err) {
-        return false , fmt.Errorf("directory does not exist")
-    }
-    if err != nil {
-        return false , fmt.Errorf("error checking directory: %v", err)
-    }
-    if !info.IsDir() {
-        return false, fmt.Errorf("directory does not exists")
-    }
-    return true, nil
-}
-
 func extractTimeFromLog(line string) (time.Time) {
     var timestamp time.Time
    
@@ -323,7 +298,6 @@ func createDirectories(dirs[]string, base string)error{
     }
     return nil
 }
-
 func writeLogs(log_entry LogEntry, fileName string) {
     file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
     if err != nil {

@@ -1,0 +1,2 @@
+Timestamp:2024-08-07 07:45:22.799 +0000 UTC, Content:status.setSessionOffline - reply: predicate_name:\"boolTrue\", Caller:service/status_service_impl.go:48, Level:debug, Trace:857d6f93a1acafaec7e4280c72947565
+Timestamp:2024-08-07 07:45:22.799 +0000 UTC, Content:172.20.0.3:36106 - /status.RPCStatus/status_setSessionOffline - {\"user_id\":10,\"auth_key_id\":-1750583847336618178}, Caller:serverinterceptors/statinterceptor.go:90, Level:info, Trace:857d6f93a1acafaec7e4280c72947565

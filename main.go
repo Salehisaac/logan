@@ -128,7 +128,7 @@ func main(){
 	}
 
     if streamFlag{
-        stream.StartStream(phoneNumber, client_system, pwd)
+        stream.StartStream(phoneNumber, client_system, pwd, authKey)
     }else{
 
         start := time.Now()
@@ -234,7 +234,7 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time){
 	reader := bufio.NewReader(file)
 
 	var cumulativeSize int64
-
+  
 	for {
 		if cumulativeSize >= limit {
 			break
@@ -259,15 +259,17 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time){
                 trace := extractTraceFromLog(line)
                 content := extractContentFromLog(line)
 
-                re := regexp.MustCompile(`perm_auth_key_id:\s*(\d+)`)
+                re := regexp.MustCompile(`perm_auth_key_id:\s*(-?\d+)`)
                 match := re.FindStringSubmatch(content)
-    
                 if len(match) > 0 {
-                    mu.Lock()
-                    if !traceExists(trace) {
-                        traces = append(traces, trace)
+                    if match[1] == authKey {
+                        mu.Lock()
+                        if !traceExists(trace) {
+                            traces = append(traces, trace)
+                        }
+                        mu.Unlock()
                     }
-                    mu.Unlock()
+                   
                 }
             }
 		}
