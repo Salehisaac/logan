@@ -51,5 +51,5 @@ Follow these steps to set up and use the Log Reader tool:
   
     *Real-Time Read:* To capture logs as they are generated, use the -s flag:
     ```bash
-    ./log_reader
+    ./log_reader -s
     ```
