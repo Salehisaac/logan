@@ -10,7 +10,7 @@ import (
 	"io"
 	"bufio"
 	"path/filepath"
-
+    "sync"
 )
 
 type LogEntry struct {
@@ -26,8 +26,10 @@ var authKey string
 var traces []string
 var client_system string
 var pwd string
+var logs = make(map[string][]LogEntry)
 
 var base_log_path string
+var mu sync.Mutex
 
 func StartStream(phoneNumber, system, pathToLogs, userAuthKey  string ){
 	
@@ -63,31 +65,37 @@ func StartStream(phoneNumber, system, pathToLogs, userAuthKey  string ){
     }
     logFiles := getLogFiles(directories)
 
-    streamTraces(files, resultChan, logFiles)
+    streamTraces(files, resultChan)
 
-    // for _, file := range logFiles{
-    //    go streamLogs(file)
-    // }
+    for _, file := range logFiles {
+        go func (file string)  {
+           streamLogs(file) 
+        }(file)
+    }
 
 	for trace := range resultChan {
 		if !traceExists(trace){
             traces = append(traces, trace)
+            time.Sleep(1 * time.Second)
+            go func (trace string)  {
+                checkLogsWithTraces(trace)
+            }(trace)
         }
 	}
 }
 
-func streamTraces(fileNames []string, resultChan chan<-string, logFiles []string ) {
+func streamTraces(fileNames []string, resultChan chan<-string) {
 
 	for _, fileName := range fileNames {
-		go processFileForTrace(fileName, resultChan, logFiles)
+		go processFileForTrace(fileName, resultChan)
 	}
-
 }
 
-func streamLogs(fileName, trace string) {
+func streamLogs(fileName string) {
     parts := strings.Split(fileName, "/")
     dir := parts[len(parts)-2]
     logFile := parts[len(parts)-1]
+    dirLogFile := fmt.Sprintf("%s/%s", dir, logFile)
 
     file, err := os.Open(fileName)
     if err != nil {
@@ -103,49 +111,43 @@ func streamLogs(fileName, trace string) {
     }
 
     reader := bufio.NewReader(file)
-    timeout := time.After(10 * time.Second) 
 
     for {
-        select {
-        case <-timeout:
+        line, err := reader.ReadString('\n')
+        if err != nil {
+            if err == io.EOF {
+                time.Sleep(100 * time.Millisecond) 
+                continue
+            }
+            fmt.Printf("Error reading line from file %s: %v\n", fileName, err)
             return
-        default:
-            line, err := reader.ReadString('\n')
-            if err != nil {
-                if err == io.EOF {
-                    time.Sleep(100 * time.Millisecond) 
-                    continue
-                }
-                fmt.Printf("Error reading line from file %s: %v\n", fileName, err)
-                return
-            }
-
-            log_trace := extractTraceFromLog(line)
-
-            if log_trace == trace {
-                level := extractLevelFromLog(line)
-                caller := extractCallerFromLog(line)
-                content := extractContentFromLog(line)
-                timeStamp := extractTimeFromLog(line)
-
-                log_entry := LogEntry{
-                    Timestamp: timeStamp,
-                    Content:   content,
-                    Caller:    caller,
-                    Trace:     trace,
-                    Level:     level,
-                    FileName:  fileName,
-                }
-                fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, caller, level, log_trace)
-                pathToWrite := fmt.Sprintf("%s/%s/%s", base_log_path, dir, logFile)
-                writeLogs(log_entry, pathToWrite)
-            }
-            time.Sleep(100 * time.Millisecond)
         }
+
+        log_trace := extractTraceFromLog(line)
+        level := extractLevelFromLog(line)
+        caller := extractCallerFromLog(line)
+        content := extractContentFromLog(line)
+        timeStamp := extractTimeFromLog(line)
+
+        log_entry := LogEntry{
+            Timestamp: timeStamp,
+            Content:   content,
+            Caller:    caller,
+            Trace:     log_trace,
+            Level:     level,
+            FileName:  fileName,
+        }
+        mu.Lock()
+        logs[dirLogFile] = append(logs[dirLogFile], log_entry)
+        mu.Unlock()
+        // fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, caller, level, log_trace)
+        // pathToWrite := fmt.Sprintf("%s/%s/%s", base_log_path, dir, logFile)
+        // writeLogs(log_entry, pathToWrite)
+        // time.Sleep(100 * time.Millisecond)
     }
 }
 
-func processFileForTrace(fileName string, resultChan chan<- string, logFiles []string) {
+func processFileForTrace(fileName string, resultChan chan<- string) {
 
 	filePath := filepath.Join(pwd, fileName)
 	file, err := os.Open(filePath)
@@ -177,15 +179,13 @@ func processFileForTrace(fileName string, resultChan chan<- string, logFiles []s
 		if len(match) > 0 && match[1] == authKey {
 			if !traceExists(trace) {
 				resultChan <- trace
-                for _, file := range logFiles{
-                    go streamLogs(file, trace)
-                 }
 			}
 		}
-
+ 
 		time.Sleep(100 * time.Millisecond)
 	}
 }
+
 func traceExists(trace string) bool {
     for _, t := range traces {
         if t == trace {
@@ -194,6 +194,7 @@ func traceExists(trace string) bool {
     }
     return false
 }
+
 func extractTimeFromLog(line string) (time.Time) {
     var timestamp time.Time
    
@@ -206,6 +207,7 @@ func extractTimeFromLog(line string) (time.Time) {
 
     return timestamp
 }
+
 func extractCallerFromLog(line string) (string) {
    
     var caller string
@@ -218,6 +220,7 @@ func extractCallerFromLog(line string) (string) {
 
     return caller
 }
+
 func extractLevelFromLog(line string) (string) {
     var  level string
 
@@ -311,5 +314,20 @@ func writeLogs(log_entry LogEntry, fileName string) {
    
     if _, err := file.WriteString(logLine); err != nil {
         log.Fatalf("Failed to write to file %s: %v", fileName, err)
+    }
+}
+func checkLogsWithTraces(trace string){
+    for fileName , fileLogs := range logs{
+        for i := len(fileLogs) - 1; i >= 0; i-- {
+            log := fileLogs[i]
+        if log.Trace == trace {
+            fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, log.Caller, log.Level, log.Trace)
+            pathToWrite := fmt.Sprintf("%s/%s", base_log_path, fileName)
+            writeLogs(log, pathToWrite)
+            mu.Lock()
+            fileLogs = append(fileLogs[:i], fileLogs[i+1:]...)
+            mu.Unlock()
+         }
+       }
     }
 }

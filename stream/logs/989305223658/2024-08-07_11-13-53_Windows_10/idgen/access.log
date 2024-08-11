@@ -1,6 +1,0 @@
-Timestamp:2024-08-07 07:44:31.616 +0000 UTC, Content:idgen.getCurrentSeqId - metadata: \u003cnil\u003e, request: key:\"pts_updates_ngen_10\", Caller:service/idgen_service_impl.go:55, Level:debug, Trace:8304d6926c88854918c923091d9a5ca5
-Timestamp:2024-08-07 07:44:31.616 +0000 UTC, Content:idgen.getCurrentSeqId - reply: v:41, Caller:service/idgen_service_impl.go:62, Level:debug, Trace:8304d6926c88854918c923091d9a5ca5
-Timestamp:2024-08-07 07:44:31.617 +0000 UTC, Content:172.20.0.3:59300 - /idgen.RPCIdgen/idgen_getCurrentSeqId - {\"key\":\"pts_updates_ngen_10\"}, Caller:serverinterceptors/statinterceptor.go:90, Level:info, Trace:8304d6926c88854918c923091d9a5ca5
-Timestamp:2024-08-07 07:44:31.618 +0000 UTC, Content:idgen.getCurrentSeqId - metadata: \u003cnil\u003e, request: key:\"seq_updates_ngen_-1750583847336618178\", Caller:service/idgen_service_impl.go:55, Level:debug, Trace:8304d6926c88854918c923091d9a5ca5
-Timestamp:2024-08-07 07:44:31.618 +0000 UTC, Content:idgen.getCurrentSeqId - reply: , Caller:service/idgen_service_impl.go:62, Level:debug, Trace:8304d6926c88854918c923091d9a5ca5
-Timestamp:2024-08-07 07:44:31.618 +0000 UTC, Content:172.20.0.3:59300 - /idgen.RPCIdgen/idgen_getCurrentSeqId - {\"key\":\"seq_updates_ngen_-1750583847336618178\"}, Caller:serverinterceptors/statinterceptor.go:90, Level:info, Trace:8304d6926c88854918c923091d9a5ca5

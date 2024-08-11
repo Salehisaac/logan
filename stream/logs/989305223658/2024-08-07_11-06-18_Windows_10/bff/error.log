@@ -1,1 +1,0 @@
-Timestamp:2024-08-07 07:36:51.226 +0000 UTC, Content:users.getFullUser - error: rpc error: code = Code(500) desc = INTERNAL_SERVER_ERROR, Caller:core/users.getFullUser_handler.go:61, Level:error, Trace:d7a90525fe619fa3dfcc23aaca73240a

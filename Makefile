@@ -1,22 +1,16 @@
-
 BINARY_NAME=log_reader
-
-
+GO_FLAGS=CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 
 build:
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o $(BINARY_NAME) .
-
+	$(GO_FLAGS) go build -o $(BINARY_NAME) ./cmd
 
 run: build
-	@./$(BINARY_NAME) 
-
+	@./$(BINARY_NAME)
 
 run-stream: build
 	@./$(BINARY_NAME) -s
 
-
 clean:
 	rm -f $(BINARY_NAME)
-
 
 .PHONY: build run clean run-stream

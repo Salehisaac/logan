@@ -39,7 +39,6 @@ func NewBot() (*Bot , error) {
 
 	db := GetDB()
     
-    //creating the bot struct and configuring the redis
     return &Bot{
 		db: db,
         } , nil

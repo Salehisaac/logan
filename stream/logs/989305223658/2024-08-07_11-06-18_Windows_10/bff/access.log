@@ -1,3 +1,0 @@
-Timestamp:2024-08-07 07:36:23.396 +0000 UTC, Content:account.updateStatus - reply: predicate_name:\"boolTrue\", Caller:service/account_service_impl.go:46, Level:debug, Trace:1e3af54d37c3e6278f70599c818b1850
-Timestamp:2024-08-07 07:36:23.4 +0000 UTC, Content:172.20.0.3:39774 - /mtproto.RPCAccount/account_updateStatus - {\"constructor\":1713919532,\"offline\":{\"predicate_name\":\"boolFalse\, Caller:serverinterceptors/statinterceptor.go:90, Level:info, Trace:1e3af54d37c3e6278f70599c818b1850
-Timestamp:2024-08-07 07:36:51.23 +0000 UTC, Content:172.20.0.3:39774 - /mtproto.RPCUsers/users_getFullUser - {\"constructor\":-1240508136,\"id\":{\"predicate_name\":\"inputUserSelf\, Caller:serverinterceptors/statinterceptor.go:90, Level:info, Trace:d7a90525fe619fa3dfcc23aaca73240a

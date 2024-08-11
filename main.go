@@ -8,16 +8,16 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
+	"io"
+	"log_reader/stream"
 	_ "net/http/pprof"
 	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"sync"
-    "io"
 	"github.com/joho/godotenv"
-    "log_reader/stream"
+
 )
 
 
@@ -53,22 +53,6 @@ func main(){
     }
 
 	path := os.Getenv("LOGS_PATH")
-	fmt.Print("phone/duration: ")
-    scanner := bufio.NewScanner(os.Stdin)
-    scanner.Scan()
-    line := strings.TrimSpace(scanner.Text())
-    phoneNumber , since := getEnteries(line)
-    phoneNumber = strings.TrimSpace(phoneNumber)
-
-    if strings.HasPrefix(phoneNumber, "09") {
-        phoneNumber = "98" + phoneNumber[1:]
-    }
-
-    duration, err := getTheDuration(since)
-    if err != nil {
-        log.Fatal("error parsing the time : " , err)
-    }
- 
     if ok, err :=checkPathValidation(path); !ok {
         log.Fatal(" path invalid: " , err)
     }else{
@@ -80,63 +64,43 @@ func main(){
         log.Fatalf("Failed to create bot: %v", err)
     }
 
-    userId, err := b.GetUserByPhoneNumber(phoneNumber)
-    if err != nil {
-        log.Fatalf("Failed to get user ID: %v", err)
-    }
-
-
-   
-	authKeys, err := b.GetAuthkeysByUserId(userId)
-	if err != nil {
-        log.Fatalf("Failed to get user ID: %v", err)
-    }
-
-    sortedAuthKeys , err := b.SortAuthkeys(authKeys)
-  
-    if err != nil {
-        log.Fatal("failed to sort the authkeys : ", err)
-    }
-
-   
- 
-	clients , err := b.GetDevicesByAuthKeyId(sortedAuthKeys)
-	if err != nil {
-		log.Fatal("error getting the client : " ,err)
-	}
-
-
-	fmt.Println("choose a op system :")
-
-
-	for index , client :=range clients{
-		fmt.Printf("%d)%s_%s_%s\n",index+1 ,client.DeviceModel, client.SystemVersion, client.ClientIp)
-	}
-	var opIndex int 
-	fmt.Scanln(&opIndex)
-
-	for index , client := range clients{
-		if index+1 == opIndex {
-			authKeyint := client.AuthKeyId
-			authKey = strconv.Itoa(authKeyint)
-            client_system = strings.Replace(client.SystemVersion, " ", "_", -1)
-		}
-	}
-	if authKey == ""{
-		fmt.Println("invalid number")
-		return
-	}
-
     if streamFlag{
+        fmt.Print("phone: ")
+        scanner := bufio.NewScanner(os.Stdin)
+        scanner.Scan()
+        line := strings.TrimSpace(scanner.Text())
+        phoneNumber := getEnteriesStream(line)
+        phoneNumber = strings.TrimSpace(phoneNumber)
+        if strings.HasPrefix(phoneNumber, "09") {
+            phoneNumber = "98" + phoneNumber[1:]
+        }
+        b.initData(phoneNumber)
         stream.StartStream(phoneNumber, client_system, pwd, authKey)
     }else{
+        fmt.Print("phone/duration: ")
+        scanner := bufio.NewScanner(os.Stdin)
+        scanner.Scan()
+        line := strings.TrimSpace(scanner.Text())
+        phoneNumber , since := getEnteries(line)
+        phoneNumber = strings.TrimSpace(phoneNumber)
+
+        if strings.HasPrefix(phoneNumber, "09") {
+            phoneNumber = "98" + phoneNumber[1:]
+        }
+
+        duration, err := getTheDuration(since)
+        if err != nil {
+            log.Fatal("error parsing the time : " , err)
+        }
+    
+        b.initData(phoneNumber)
 
         start := time.Now()
 
         currentTime := time.Now()
         pastTime := currentTime.Add(-duration)
-    
-    
+
+
         clientDirPath := fmt.Sprintf("./logs/%s", phoneNumber) 
         _, err = os.Stat(clientDirPath)
         if os.IsNotExist(err) {
@@ -145,25 +109,24 @@ func main(){
                 log.Fatalf("Failed to create directory: %v", err)
             }
         }
-       
+        
         pastTimeStr := pastTime.Format("2006-01-02_15-04-05")
         dirName := fmt.Sprintf("./logs/%s/%s_logs_%s",phoneNumber, pastTimeStr, client_system)
         err = os.MkdirAll(dirName, os.ModePerm)
         if err != nil {
             log.Fatalf("Failed to create directory: %v", err)
         }
-    
-    
-    
+
+
         directories := getLogDirs()
         files := getLogFiles(directories)
-    
+
         fmt.Println("Processing...")
         processTraces(pastTime) 
-    
+
         var wg sync.WaitGroup
-    
-       
+
+        
         for _, file := range files {
             wg.Add(1) 
             go func(file string) {
@@ -173,13 +136,11 @@ func main(){
         }
         wg.Wait() 
         end := time.Since(start)
-    
+
         writeLogsToFiles(dirName)
         
         fmt.Printf("Application runtime: %v\n", end)
-
     }
-   
 }
 func processTraces(pastTime time.Time) {
 
@@ -268,8 +229,7 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time){
                             traces = append(traces, trace)
                         }
                         mu.Unlock()
-                    }
-                   
+                    } 
                 }
             }
 		}
@@ -511,6 +471,18 @@ func getEnteries(line string) (string, string) {
 
     return phoneNumber, duration
 }
+func getEnteriesStream(line string) (string) {
+    line_part := strings.Split(line, " ")
+  
+    if len(line_part) != 1 {
+        log.Fatal("not enough arguments")
+    }
+
+    phoneNumber := line_part[0]
+    
+
+    return phoneNumber
+}
 func getTheDuration(since string)(time.Duration, error){
 
     var duration time.Duration
@@ -522,21 +494,21 @@ func getTheDuration(since string)(time.Duration, error){
 
 	hours, err := strconv.Atoi(timeParts[0])
 	if err != nil {
-        return duration , fmt.Errorf("Invalid hour input: %v", err)
+        return duration , fmt.Errorf("invalid hour input: %v", err)
 	}
 
 	minutes, err := strconv.Atoi(timeParts[1])
 	if err != nil {
-        return duration , fmt.Errorf("Invalid minute input: %v", err)
+        return duration , fmt.Errorf("invalid minute input: %v", err)
 	}else if minutes > 60{
-        return duration , fmt.Errorf("Invalid minute input: %v", err)
+        return duration , fmt.Errorf("invalid minute input: %v", err)
 	}
 
 	seconds, err := strconv.Atoi(timeParts[2])
 	if err != nil {
-		return duration , fmt.Errorf("Invalid second input: %v", err)
+		return duration , fmt.Errorf("invalid second input: %v", err)
 	}else if seconds > 60{
-		return duration , fmt.Errorf("Invalid second input: %v", err)
+		return duration , fmt.Errorf("invalid second input: %v", err)
 	}
 
 	duration = time.Duration(hours)*time.Hour + time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
@@ -555,5 +527,52 @@ func checkPathValidation(path string)(bool, error){
         return false, fmt.Errorf("directory does not exists")
     }
     return true, nil
+}
+func (b Bot)initData(phoneNumber string){
+    userId, err := b.GetUserByPhoneNumber(phoneNumber)
+    if err != nil {
+        log.Fatalf("Failed to get user ID: %v", err)
+    }
+
+   
+    authKeys, err := b.GetAuthkeysByUserId(userId)
+    if err != nil {
+        log.Fatalf("Failed to get user ID: %v", err)
+    }
+
+    sortedAuthKeys , err := b.SortAuthkeys(authKeys)
+  
+    if err != nil {
+        log.Fatal("failed to sort the authkeys : ", err)
+    }
+
+   
+ 
+    clients , err := b.GetDevicesByAuthKeyId(sortedAuthKeys)
+    if err != nil {
+        log.Fatal("error getting the client : " ,err)
+    }
+
+
+    fmt.Println("choose a op system :")
+
+
+    for index , client :=range clients{
+        fmt.Printf("%d)%s_%s_%s\n",index+1 ,client.DeviceModel, client.SystemVersion, client.ClientIp)
+    }
+    var opIndex int 
+    fmt.Scanln(&opIndex)
+
+    for index , client := range clients{
+        if index+1 == opIndex {
+            authKeyint := client.AuthKeyId
+            authKey = strconv.Itoa(authKeyint)
+            client_system = strings.Replace(client.SystemVersion, " ", "_", -1)
+        }
+    }
+    if authKey == ""{
+        fmt.Println("invalid number")
+        return
+    }
 }
 
