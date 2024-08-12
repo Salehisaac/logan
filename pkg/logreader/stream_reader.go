@@ -44,11 +44,9 @@ func StartStream(cfg *configs.Config) {
 	}
 
 	directories := utils.GetLogDirs()
-	// err = utils.CreateDirectories(directories, dirName)
-	// if err != nil {
-	//     log.Fatalf("error creating directories %s", err)
-	// }
 	logFiles := utils.GetLogFiles(directories, cfg)
+
+	fmt.Println("listening ...")
 
 	StreamTraces(files, resultChan, cfg)
 
@@ -173,8 +171,7 @@ func checkLogsWithTraces(trace, dirname string) {
 			log := fileLogs[i]
 			if log.Trace == trace {
 				fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, log.Caller, log.Level, log.Trace)
-				pathToWrite := fmt.Sprintf("%s", dirname)
-				stream_utils.WriteLogs(log, pathToWrite)
+				stream_utils.WriteLogs(log, dirname)
 				mu.Lock()
 				fileLogs = append(fileLogs[:i], fileLogs[i+1:]...)
 				mu.Unlock()

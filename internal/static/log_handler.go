@@ -16,22 +16,23 @@ import (
 )
 
 func ProcessStatic(b *internal.Bot, cfg *configs.Config) {
-	fmt.Print("phone/duration: ")
+
+	duration, err := static_utils.GetTheDuration(cfg.TimeFlag)
+	if err != nil {
+		log.Fatal("error parsing the time : ", err)
+	}
+
+	fmt.Print("phone:")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	line := strings.TrimSpace(scanner.Text())
-	phoneNumber, since := static_utils.GetEnteries(line)
+	phoneNumber:= utils.GetEnteries(line)
 	phoneNumber = strings.TrimSpace(phoneNumber)
 
 	if strings.HasPrefix(phoneNumber, "09") {
 		phoneNumber = "98" + phoneNumber[1:]
 	}
-
-	duration, err := static_utils.GetTheDuration(since)
-	if err != nil {
-		log.Fatal("error parsing the time : ", err)
-	}
-
+	
 	b.InitData(phoneNumber, cfg)
 
 	start := time.Now()

@@ -7,9 +7,9 @@ import (
 	"log_reader/internal/types"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
+
 )
 
 type FileInfo struct {
@@ -20,17 +20,7 @@ type FileInfo struct {
 var files = make(map[string]FileInfo)
 var mu sync.Mutex
 
-func GetEnteries(line string) string {
-	line_part := strings.Split(line, " ")
 
-	if len(line_part) != 1 {
-		log.Fatal("not enough arguments")
-	}
-
-	phoneNumber := line_part[0]
-
-	return phoneNumber
-}
 
 func WriteLogs(log_entry types.LogEntry, fileName string) {
 	var clientDirPath string

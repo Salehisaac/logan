@@ -12,17 +12,19 @@ import (
 
 var (
 	streamFlag bool
+	timeFlag string
 )
 
 func init() {
 	flag.BoolVar(&streamFlag, "s", false, "Activate stream mode")
+	flag.StringVar(&timeFlag, "time", "", "Time in hr:min:sec format")
 }
 
 func main() {
 
 	flag.Parse()
 
-	cfg, err := configs.LoadConfig(streamFlag)
+	cfg, err := configs.LoadConfig(streamFlag, timeFlag)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}

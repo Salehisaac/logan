@@ -8,7 +8,24 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+	"strings"
 )
+
+func GetEnteries(line string) string {
+	line_part := strings.Split(line, " ")
+
+	if len(line_part) != 1 {
+		log.Fatal("not enough arguments")
+	}
+
+	phoneNumber := line_part[0]
+
+	re := regexp.MustCompile("[^0-9]")
+
+	phoneNumber = re.ReplaceAllString(phoneNumber, "")
+
+	return phoneNumber
+}
 
 func CheckPathValidation(path string) (bool, error) {
 	info, err := os.Stat(path)

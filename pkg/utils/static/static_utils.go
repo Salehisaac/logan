@@ -20,18 +20,6 @@ var (
 	mu        sync.Mutex
 )
 
-func GetEnteries(line string) (string, string) {
-	line_part := strings.Split(line, " ")
-
-	if len(line_part) != 2 {
-		log.Fatal("not enough arguments")
-	}
-
-	phoneNumber := line_part[0]
-	duration := line_part[1]
-
-	return phoneNumber, duration
-}
 func GetTheDuration(since string) (time.Duration, error) {
 
 	var duration time.Duration

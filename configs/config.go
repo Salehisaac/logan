@@ -12,9 +12,10 @@ type Config struct {
 	AuthKey      string
 	StreamFlag   bool
 	PhoneNumber  string
+	TimeFlag 	 string
 }
 
-func LoadConfig(flag bool) (*Config, error) {
+func LoadConfig(flag bool, time string) (*Config, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
@@ -23,5 +24,6 @@ func LoadConfig(flag bool) (*Config, error) {
 	return &Config{
 		LogsPath:   os.Getenv("LOGS_PATH"),
 		StreamFlag: flag,
+		TimeFlag: time,
 	}, nil
 }
