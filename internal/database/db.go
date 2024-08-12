@@ -5,17 +5,20 @@ import (
 	"sort"
 	"time"
 
+	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
 var db *sql.DB
 
 type UserDevice struct {
-	AuthKeyId 	  int    `json:"auth_key_id"`
+	AuthKeyId     int    `json:"auth_key_id"`
 	DeviceModel   string `json:"device_model"`
 	SystemVersion string `json:"system_version"`
-	ClientIp 	  string `json:"client_ip"`
-	Presence 	  string `json:"updated_at"`
+	ClientIp      string `json:"client_ip"`
+	Presence      string `json:"updated_at"`
 }
 
 func ConnectDB(connectionString string) error {
@@ -36,7 +39,6 @@ func GetDB() *sql.DB {
 	return db
 }
 
-
 func GetUserByPhoneNumber(phoneNumber string, db *sql.DB) (int, error) {
 	query := "SELECT id FROM users WHERE phone = ?"
 
@@ -49,7 +51,7 @@ func GetUserByPhoneNumber(phoneNumber string, db *sql.DB) (int, error) {
 	return userId, nil
 }
 
-func  GetAuthkeysByUserId(userId int, db *sql.DB) ([]int, error) {
+func GetAuthkeysByUserId(userId int, db *sql.DB) ([]int, error) {
 	query := "SELECT auth_key_id FROM auth_users WHERE user_id = ?"
 
 	rows, err := db.Query(query, userId)
@@ -92,29 +94,28 @@ func GetDevicesByAuthKeyId(authKeys []int, db *sql.DB) ([]UserDevice, error) {
 	return devices, nil
 }
 
-func SortAuthkeys(authKeys []int, db *sql.DB)([]int, error){
-	authKeyIds:= make(map[int]time.Time)
+func SortAuthkeys(authKeys []int, db *sql.DB) ([]int, error) {
+	authKeyIds := make(map[int]time.Time)
 	query := `
 	SELECT updated_at,perm_auth_key_id
 	FROM auth_key_infos 
 	WHERE perm_auth_key_id = ?
 	ORDER BY id DESC limit 1;
-	`	
-	for _, authKeyId := range authKeys{
+	`
+	for _, authKeyId := range authKeys {
 		rows, err := db.Query(query, authKeyId)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	
-	for rows.Next() {
-		var updated_at time.Time
-		var authKeyId int
-		if err := rows.Scan(&updated_at, &authKeyId); err != nil {
+		if err != nil {
 			return nil, err
 		}
-		authKeyIds[authKeyId] = updated_at
+		defer rows.Close()
+
+		for rows.Next() {
+			var updated_at time.Time
+			var authKeyId int
+			if err := rows.Scan(&updated_at, &authKeyId); err != nil {
+				return nil, err
+			}
+			authKeyIds[authKeyId] = updated_at
 		}
 	}
 
@@ -128,7 +129,6 @@ func SortAuthkeys(authKeys []int, db *sql.DB)([]int, error){
 		sortedList = append(sortedList, kv{k, v})
 	}
 
-	
 	sort.Slice(sortedList, func(i, j int) bool {
 		return sortedList[i].Value.After(sortedList[j].Value)
 	})

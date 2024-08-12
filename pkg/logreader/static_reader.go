@@ -14,54 +14,51 @@ import (
 	"time"
 )
 
-
 const mb = 1024 * 1024
 
 func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 
-    
-    dir := filepath.Join(cfg.LogsPath, "session/access.log")
-    dir2 := filepath.Join(cfg.LogsPath, "bff/access.log")
-    rootDires := []string{dir, dir2}
+	dir := filepath.Join(cfg.LogsPath, "session/access.log")
+	dir2 := filepath.Join(cfg.LogsPath, "bff/access.log")
+	rootDires := []string{dir, dir2}
 
-    
-    for _, filePath := range rootDires{
-        var wg sync.WaitGroup
-       
-        var limit int64 = 2 * mb
-    
-        file, err := os.Open(filePath)
-        if err != nil {
-            panic(err)
-        }
-        defer file.Close()
-    
-        fileInfo, err := file.Stat()
-        if err != nil {
-            panic(err)
-        }
-        fileSize := fileInfo.Size()
-    
-        numChunks := int(fileSize / limit)
-        if fileSize%limit > 0 {
-            numChunks++
-        }
-    
-        for i := 0; i < numChunks; i++ {
-            wg.Add(1)
-            go func(start int64) {
-                defer wg.Done()
-                readTraces(start, limit, filePath, pastTime, cfg)
-            }(int64(i) * limit)
-        }
-    
-        wg.Wait()
-     }
+	for _, filePath := range rootDires {
+		var wg sync.WaitGroup
+
+		var limit int64 = 2 * mb
+
+		file, err := os.Open(filePath)
+		if err != nil {
+			panic(err)
+		}
+		defer file.Close()
+
+		fileInfo, err := file.Stat()
+		if err != nil {
+			panic(err)
+		}
+		fileSize := fileInfo.Size()
+
+		numChunks := int(fileSize / limit)
+		if fileSize%limit > 0 {
+			numChunks++
+		}
+
+		for i := 0; i < numChunks; i++ {
+			wg.Add(1)
+			go func(start int64) {
+				defer wg.Done()
+				readTraces(start, limit, filePath, pastTime, cfg)
+			}(int64(i) * limit)
+		}
+
+		wg.Wait()
+	}
 }
 
-func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, cfg *configs.Config){
+func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, cfg *configs.Config) {
 
-    file, err := os.Open(fileName)
+	file, err := os.Open(fileName)
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +68,7 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 	reader := bufio.NewReader(file)
 
 	var cumulativeSize int64
-  
+
 	for {
 		if cumulativeSize >= limit {
 			break
@@ -89,46 +86,46 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 		line = strings.TrimSpace(line)
 		if line != "" {
 
-            timestamp:= utils.ExtractTimeFromLog(line)
+			timestamp := utils.ExtractTimeFromLog(line)
 
-            if timestamp.After(pastTime) && timestamp.Before(time.Now()) {
+			if timestamp.After(pastTime) && timestamp.Before(time.Now()) {
 
-                trace := utils.ExtractTraceFromLog(line)
-                content := utils.ExtractContentFromLog(line)
+				trace := utils.ExtractTraceFromLog(line)
+				content := utils.ExtractContentFromLog(line)
 
-                re := regexp.MustCompile(`perm_auth_key_id:\s*(-?\d+)`)
-                match := re.FindStringSubmatch(content)
-                if len(match) > 0 {
-                    if match[1] == cfg.AuthKey {
-                        mu.Lock()
-                        if !utils.TraceExists(trace, traces) {
-                            traces = append(traces, trace)
-                        }
-                        mu.Unlock()
-                    } 
-                }
-            }
+				re := regexp.MustCompile(`perm_auth_key_id:\s*(-?\d+)`)
+				match := re.FindStringSubmatch(content)
+				if len(match) > 0 {
+					if match[1] == cfg.AuthKey {
+						mu.Lock()
+						if !utils.TraceExists(trace, traces) {
+							traces = append(traces, trace)
+						}
+						mu.Unlock()
+					}
+				}
+			}
 		}
 	}
 }
 
 func ProcessFileLogs(pastTime time.Time, filePath string) {
-    var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
-    var limit int64 = 2 * mb
+	var limit int64 = 2 * mb
 
 	file, err := os.Open(filePath)
 	if err != nil {
 		panic(err)
 	}
-    defer file.Close()
+	defer file.Close()
 
 	fileInfo, err := file.Stat()
 	if err != nil {
 		panic(err)
 	}
 
-    fileSize := fileInfo.Size()
+	fileSize := fileInfo.Size()
 
 	numChunks := int(fileSize / limit)
 	if fileSize%limit > 0 {
@@ -145,4 +142,3 @@ func ProcessFileLogs(pastTime time.Time, filePath string) {
 
 	wg.Wait()
 }
-

@@ -1,15 +1,14 @@
 package types
 
-import(
+import (
 	"time"
 )
 
-
 type LogEntry struct {
-    Timestamp time.Time 
-    Caller    string 
-    Content   string 
-    Level     string 
-    Trace     string 
-    FileName  string
+	Timestamp time.Time
+	Caller    string
+	Content   string
+	Level     string
+	Trace     string
+	FileName  string
 }

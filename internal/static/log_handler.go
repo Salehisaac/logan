@@ -11,18 +11,16 @@ import (
 	static_utils "log_reader/pkg/utils/static"
 	"os"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
-
-
-func ProcessStatic(b *internal.Bot , cfg *configs.Config ){
+func ProcessStatic(b *internal.Bot, cfg *configs.Config) {
 	fmt.Print("phone/duration: ")
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	line := strings.TrimSpace(scanner.Text())
-	phoneNumber , since := static_utils.GetEnteries(line)
+	phoneNumber, since := static_utils.GetEnteries(line)
 	phoneNumber = strings.TrimSpace(phoneNumber)
 
 	if strings.HasPrefix(phoneNumber, "09") {
@@ -31,7 +29,7 @@ func ProcessStatic(b *internal.Bot , cfg *configs.Config ){
 
 	duration, err := static_utils.GetTheDuration(since)
 	if err != nil {
-		log.Fatal("error parsing the time : " , err)
+		log.Fatal("error parsing the time : ", err)
 	}
 
 	b.InitData(phoneNumber, cfg)
@@ -41,8 +39,7 @@ func ProcessStatic(b *internal.Bot , cfg *configs.Config ){
 	currentTime := time.Now()
 	pastTime := currentTime.Add(-duration)
 
-
-	clientDirPath := fmt.Sprintf("./logs/%s", cfg.PhoneNumber) 
+	clientDirPath := fmt.Sprintf("./logs/%s", cfg.PhoneNumber)
 	_, err = os.Stat(clientDirPath)
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(clientDirPath, os.ModePerm)
@@ -50,35 +47,33 @@ func ProcessStatic(b *internal.Bot , cfg *configs.Config ){
 			log.Fatalf("Failed to create directory: %v", err)
 		}
 	}
-	
+
 	pastTimeStr := pastTime.Format("2006-01-02_15-04-05")
-	dirName := fmt.Sprintf("./logs/%s/%s_logs_%s",cfg.PhoneNumber, pastTimeStr, cfg.ClientSystem)
+	dirName := fmt.Sprintf("./logs/%s/%s_logs_%s", cfg.PhoneNumber, pastTimeStr, cfg.ClientSystem)
 	err = os.MkdirAll(dirName, os.ModePerm)
 	if err != nil {
 		log.Fatalf("Failed to create directory: %v", err)
 	}
 
-
 	directories := utils.GetLogDirs()
 	files := utils.GetLogFiles(directories, cfg)
 
 	fmt.Println("Processing...")
-	logreader.ProcessTraces(pastTime, cfg) 
+	logreader.ProcessTraces(pastTime, cfg)
 
 	var wg sync.WaitGroup
 
-	
 	for _, file := range files {
-		wg.Add(1) 
+		wg.Add(1)
 		go func(file string) {
-			defer wg.Done() 
+			defer wg.Done()
 			logreader.ProcessFileLogs(pastTime, file)
 		}(file)
 	}
-	wg.Wait() 
+	wg.Wait()
 	end := time.Since(start)
 
 	static_utils.WriteLogsToFiles(dirName)
-	
+
 	fmt.Printf("Application runtime: %v\n", end)
 }
