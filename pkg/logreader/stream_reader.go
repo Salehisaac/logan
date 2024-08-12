@@ -56,12 +56,17 @@ func StartStream(cfg *configs.Config) {
 		}(file)
 	}
 
+
 	for trace := range resultChan {
+		ticker := time.NewTicker(500 * time.Millisecond)
+		
+
 		if !utils.TraceExists(trace, traces) {
 			traces = append(traces, trace)
-			time.Sleep(500 * time.Millisecond)
 			go func(trace string) {
-				checkLogsWithTraces(trace, dirName)
+				 	<-ticker.C
+					checkLogsWithTraces(trace, dirName)
+					ticker.Stop()
 			}(trace)
 		}
 	}

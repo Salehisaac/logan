@@ -1,0 +1,66 @@
+
+Files have been written in logs dir
+goos: linux
+goarch: amd64
+pkg: log_reader/test
+cpu: Intel(R) Core(TM) i3-4005U CPU @ 1.70GHz
+BenchmarkStaticMode-4   	       1	7286228884 ns/op	2752092040 B/op	18821304 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 7.191585685s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	6499994075 ns/op	2740982776 B/op	18842831 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 6.436626265s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5984000438 ns/op	2733578104 B/op	18866791 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.870750397s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5540627329 ns/op	2732817504 B/op	18891961 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.415218183s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5461454469 ns/op	2733619240 B/op	18919226 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.314346625s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5384486504 ns/op	2732914304 B/op	18946005 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.222380495s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5268943190 ns/op	2735277408 B/op	18971812 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.08361798s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5360745864 ns/op	2737792624 B/op	18997768 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.095025317s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5376508612 ns/op	2739364712 B/op	19020598 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.10720457s
+BenchmarkStaticMode-4   	
+Files have been written in logs dir
+       1	5431317354 ns/op	2743823560 B/op	19046409 allocs/op
+--- BENCH: BenchmarkStaticMode-4
+    benchmark_test.go:54: Processing...
+    benchmark_test.go:71: Application runtime: 5.145956509s
+PASS
+ok  	log_reader/test	57.678s
