@@ -91,8 +91,7 @@ func (b Bot) InitData(phoneNumber string, cfg *configs.Config) {
 		}
 	}
 	if authKey == "" {
-		fmt.Println("invalid number")
-		return
+		log.Fatal("invalid number")
 	}
 	cfg.AuthKey = authKey
 	cfg.ClientSystem = client_system

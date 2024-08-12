@@ -59,7 +59,7 @@ func StartStream(cfg *configs.Config) {
 	for trace := range resultChan {
 		if !utils.TraceExists(trace, traces) {
 			traces = append(traces, trace)
-			time.Sleep(1 * time.Second)
+			time.Sleep(500 * time.Millisecond)
 			go func(trace string) {
 				checkLogsWithTraces(trace, dirName)
 			}(trace)
@@ -109,7 +109,6 @@ func processFileForTrace(fileName string, resultChan chan<- string, cfg *configs
 			}
 		}
 
-		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -138,7 +137,6 @@ func streamLogs(fileName string) {
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if err == io.EOF {
-				time.Sleep(100 * time.Millisecond)
 				continue
 			}
 			fmt.Printf("Error reading line from file %s: %v\n", fileName, err)

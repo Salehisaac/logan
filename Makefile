@@ -1,8 +1,8 @@
-BINARY_NAME=log_reader
+BINARY_NAME=logan
 GO_FLAGS=CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 
 build:
-	$(GO_FLAGS) go build -ldflags="-s -w" -o $(BINARY_NAME) ./cmd && upx --brute log_reader
+	$(GO_FLAGS) go build -ldflags="-s -w" -o $(BINARY_NAME) ./cmd 
 
 run: build
 	@./$(BINARY_NAME)
