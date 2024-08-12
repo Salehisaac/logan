@@ -1,3 +1,5 @@
 .env
 .git_token
-./log_reader
+log_reader
+logs/
+stream/logs/
