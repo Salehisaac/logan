@@ -46,10 +46,10 @@ Follow these steps to set up and use the Log Reader tool:
 
     *Static Read:* To read logs from a specific start time until now, use the following command. Replace YYYY-MM-DDTHH:MM:SS with your desired start time:
     ```bash
-    ./log_reader
+    ./logan  --time hr:min:sec
     ```
   
     *Real-Time Read:* To capture logs as they are generated, use the -s flag:
     ```bash
-    ./log_reader -s
+    ./logan -s
     ```
