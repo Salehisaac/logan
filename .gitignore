@@ -1,6 +1,4 @@
 .env
 .git_token
 log_reader
-logs/*
-stream/logs/*
 logan
