@@ -14,6 +14,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+	"syscall"
+	"os/signal"
 	"time"
 )
 
@@ -24,6 +26,20 @@ var (
 )
 
 func StartStream(cfg *configs.Config) {
+
+	sigs := make(chan os.Signal, 1)
+  
+    signal.Notify(sigs, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		<-sigs
+		fmt.Println()
+		fmt.Println("wait ....")
+		time.Sleep(4 * time.Second)
+		fmt.Println("done !")
+		os.Exit(0)
+	}()
+
 	files := []string{"session/access.log", "bff/access.log"}
 	resultChan := make(chan string)
 
@@ -175,9 +191,9 @@ func checkLogsWithTraces(trace, dirname string) {
 			if log.Trace == trace {
 				fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, log.Caller, log.Level, log.Trace)
 				stream_utils.WriteLogs(log, dirname)
-				mu.Lock()
-				fileLogs = append(fileLogs[:i], fileLogs[i+1:]...)
-				mu.Unlock()
+				// mu.Lock()
+				// fileLogs = append(fileLogs[:i], fileLogs[i+1:]...)
+				// mu.Unlock()
 			}
 		}
 	}
