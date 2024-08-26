@@ -1,6 +1,6 @@
 # Logan 
 
-![python version](https://img.shields.io/badge/python-v3.6+-green)
+![Go version](https://img.shields.io/badge/go-v1.19.7-blue)
 
 ## Overview
 
