@@ -1,5 +1,7 @@
 # Logan 
 
+![python version](https://img.shields.io/badge/python-v3.6+-green)
+
 ## Overview
 
 Welcome to the Logan !, your key to efficient log management and request tracking. This tool is designed to simplify the process of monitoring and analyzing logs for specific users by organizing them based on trace IDs. Whether you're tracing request lifecycles or analyzing historical data, Logan offers a straightforward solution.
