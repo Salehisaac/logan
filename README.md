@@ -44,7 +44,7 @@ Follow these steps to set up and use the Log Reader tool:
 
 5. **Run the Log Reader**
 
-    *Static Read:* To read logs from a specific start time until now, use the following command. Replace YYYY-MM-DDTHH:MM:SS with your desired start time:
+    *Static Read:* To read logs from a specific start time until now, use the following command. Replace hr:min:sec with your desired start time:
     ```bash
     ./logan  --time hr:min:sec
     ```
