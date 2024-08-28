@@ -33,9 +33,17 @@ func StartStream(cfg *configs.Config) {
 
 	go func() {
 		<-sigs
+		var wg sync.WaitGroup
 		fmt.Println()
 		fmt.Println("wait ....")
-		time.Sleep(4 * time.Second)
+		
+		for fileName, fileLogs := range logs {
+			wg.Add(1)
+			go func (fileName string, fileLogs []types.LogEntry, wg *sync.WaitGroup)  {
+				FinalCheck(fileName, fileLogs, wg)
+			}(fileName, fileLogs, &wg)
+		}
+		wg.Wait()
 		fmt.Println("done !")
 		os.Exit(0)
 	}()
@@ -185,24 +193,30 @@ func streamLogs(fileName string) {
 
 func checkLogsWithTraces(trace, dirname string) {
 	muw := &sync.Mutex{} 
-
+	muw.Lock() 
 	for fileName, fileLogs := range logs {
-		muw.Lock() 
-
 		for i := len(fileLogs) - 1; i >= 0; i-- {
 			log := fileLogs[i]
 			if log.Trace == trace {
-				fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, log.Caller, log.Level, log.Trace)
-				stream_utils.WriteLogs(log, dirname)
-
-				
 				fileLogs = append(fileLogs[:i], fileLogs[i+1:]...)
+				fmt.Printf("%s => Caller: %s, Level: %s, Trace: %s\n\n", fileName, log.Caller, log.Level, log.Trace)
+				stream_utils.WriteLogs(log, dirname)				
 			}
 		}
 
-		
-		logs[fileName] = fileLogs
-
-		muw.Unlock() 
+		logs[fileName] = fileLogs	
 	}
+	muw.Unlock() 
+}
+
+func FinalCheck(fileName string , fileLogs []types.LogEntry , wg *sync.WaitGroup){
+	for _, log := range fileLogs{
+		for _, trace :=range traces{
+			if trace == log.Trace{
+				fmt.Println(log)
+				fmt.Println()
+			}
+		}
+	}
+	wg.Done()
 }

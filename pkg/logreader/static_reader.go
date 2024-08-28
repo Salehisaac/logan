@@ -25,7 +25,7 @@ func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 	for _, filePath := range rootDires {
 		var wg sync.WaitGroup
 
-		var limit int64 = 2 * mb
+		var limit int64 = 100 * mb
 
 		file, err := os.Open(filePath)
 		if err != nil {
@@ -112,7 +112,7 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 func ProcessFileLogs(pastTime time.Time, filePath string) {
 	var wg sync.WaitGroup
 
-	var limit int64 = 2 * mb
+	var limit int64 = 100 * mb
 
 	file, err := os.Open(filePath)
 	if err != nil {

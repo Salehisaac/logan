@@ -132,9 +132,16 @@ func WriteLogsToFiles(dirName string) {
 		}
 
 		earliestTimestamp := logs[0].Timestamp
-		tehranTime := earliestTimestamp.In(tehranLoc)
 		formattedDate := earliestTimestamp.Format("2006-01-02")
-		formattedTime := tehranTime.Format("15:04:05")
+
+		var formattedTime string
+
+		if earliestTimestamp.Location() == tehranLoc {
+			formattedTime = earliestTimestamp.Format("15:04:05")
+		} else {
+			tehranTime := earliestTimestamp.In(tehranLoc)
+			formattedTime = tehranTime.Format("15:04:05")
+		}
 		var fileName string
 		if hasError {
 			fileName = fmt.Sprintf("%s/%s_%s_%s_error.txt", dirName, formattedDate, formattedTime, trace)

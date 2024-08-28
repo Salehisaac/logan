@@ -61,7 +61,7 @@ func WriteLogs(log_entry types.LogEntry, fileName string) {
 		if fileInfo, exists := files[log_entry.Trace]; exists {
 			fileInfo.HasError = true
 			files[log_entry.Trace] = fileInfo
-		} else {
+		}else {
 			log.Printf("FileInfo for trace %s does not exist", log_entry.Trace)
 		}
 
@@ -103,3 +103,5 @@ func WriteLogs(log_entry types.LogEntry, fileName string) {
 		log.Fatalf("Failed to write to file %s: %v", clientDirPath, err)
 	}
 }
+
+
