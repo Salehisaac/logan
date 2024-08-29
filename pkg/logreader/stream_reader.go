@@ -33,17 +33,18 @@ func StartStream(cfg *configs.Config) {
 
 	go func() {
 		<-sigs
-		var wg sync.WaitGroup
+		// var wg sync.WaitGroup
 		fmt.Println()
 		fmt.Println("wait ....")
+		time.Sleep(time.Second * 3)
 		
-		for fileName, fileLogs := range logs {
-			wg.Add(1)
-			go func (fileName string, fileLogs []types.LogEntry, wg *sync.WaitGroup)  {
-				FinalCheck(fileName, fileLogs, wg)
-			}(fileName, fileLogs, &wg)
-		}
-		wg.Wait()
+		// for fileName, fileLogs := range logs {
+		// 	wg.Add(1)
+		// 	go func (fileName string, fileLogs []types.LogEntry, wg *sync.WaitGroup)  {
+		// 		FinalCheck(fileName, fileLogs, wg)
+		// 	}(fileName, fileLogs, &wg)
+		// }
+		// wg.Wait()
 		fmt.Println("done !")
 		os.Exit(0)
 	}()
@@ -209,14 +210,14 @@ func checkLogsWithTraces(trace, dirname string) {
 	muw.Unlock() 
 }
 
-func FinalCheck(fileName string , fileLogs []types.LogEntry , wg *sync.WaitGroup){
-	for _, log := range fileLogs{
-		for _, trace :=range traces{
-			if trace == log.Trace{
-				fmt.Println(log)
-				fmt.Println()
-			}
-		}
-	}
-	wg.Done()
-}
+// func FinalCheck(fileName string , fileLogs []types.LogEntry , wg *sync.WaitGroup){
+// 	for _, log := range fileLogs{
+// 		for _, trace :=range traces{
+// 			if trace == log.Trace{
+// 				fmt.Println(log)
+// 				fmt.Println()
+// 			}
+// 		}
+// 	}
+// 	wg.Done()
+// }
