@@ -3,6 +3,7 @@ package logreader
 import (
 	"bufio"
 	"io"
+	"log"
 	"log_reader/configs"
 	"log_reader/pkg/utils"
 	static_utils "log_reader/pkg/utils/static"
@@ -23,9 +24,10 @@ func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 	rootDires := []string{dir, dir2}
 
 	for _, filePath := range rootDires {
+		log.Println("start extracting traces on ", filePath)
 		var wg sync.WaitGroup
 
-		var limit int64 = 2 * mb
+		var limit int64 = 100 * mb
 
 		file, err := os.Open(filePath)
 		if err != nil {
@@ -53,6 +55,7 @@ func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 		}
 
 		wg.Wait()
+		log.Println("end extracting traces on ", filePath)
 	}
 }
 
@@ -110,9 +113,10 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 }
 
 func ProcessFileLogs(pastTime time.Time, filePath string) {
+	log.Println("start matching logs with traces in ", filePath)
 	var wg sync.WaitGroup
 
-	var limit int64 = 2 * mb
+	var limit int64 = 100 * mb
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -139,5 +143,7 @@ func ProcessFileLogs(pastTime time.Time, filePath string) {
 			static_utils.Read(start, limit, filePath, pastTime, traces)
 		}(int64(i) * limit)
 	}
+
 	wg.Wait()
+	log.Println("end matching logs with traces in ", filePath)
 }
