@@ -79,6 +79,7 @@ func Read(offset int64, limit int64, fileName string, pastTime time.Time, traces
 		}
 
 		cumulativeSize += int64(len(line))
+		
 		line = strings.TrimSpace(line)
 		if line != "" {
 

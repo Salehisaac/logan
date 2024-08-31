@@ -52,7 +52,7 @@ func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 		if err != nil {
 			panic(err)
 		}
-        log.Println("start extracting traces on ", filePath)
+        // log.Println("start extracting traces on ", filePath)
         var wg sync.WaitGroup
 
         file, err := os.Open(filePath)
@@ -87,7 +87,7 @@ func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
         }
 
         wg.Wait()
-        log.Println("end extracting traces on ", filePath)
+        // log.Println("end extracting traces on ", filePath)
 		}(filePath) 
     }
 	rootWg.Wait()
@@ -145,10 +145,10 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 	}
 }
 func ProcessFileLogs(pastTime time.Time, filePath string) {
-	log.Println("start matching logs with traces in ", filePath)
+	// log.Println("start matching logs with traces in ", filePath)
 	start_offset, err := findLogOffsetReverse(filePath, pastTime)
 		if err != nil {
-			log.Println("didnt find anything in ", filePath)
+			// log.Println("didnt find anything in ", filePath)
 			return
 		}
 
@@ -187,10 +187,9 @@ func ProcessFileLogs(pastTime time.Time, filePath string) {
 	}
 
 	wg.Wait()
-	log.Println("end matching logs with traces in ", filePath)
+	// log.Println("end matching logs with traces in ", filePath)
 }
 func findLogOffsetReverse(filename string, pastTime time.Time) (int64, error) {
-	
 	file, err := os.Open(filename)
 	if err != nil {
 		return 0, err
@@ -209,7 +208,7 @@ func findLogOffsetReverse(filename string, pastTime time.Time) (int64, error) {
 	var chunk = make([]byte, chunkSize)
 
 	for offset > 0 {
-	
+		
 		readSize := chunkSize
 		if offset < chunkSize {
 			readSize = int(offset)
