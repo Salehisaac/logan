@@ -2,6 +2,8 @@ package logreader
 
 import (
 	"bufio"
+	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"log_reader/configs"
@@ -10,55 +12,86 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 const mb = 1024 * 1024
+const chunkSize = 1024
+var limit int64
 
 func ProcessTraces(pastTime time.Time, cfg *configs.Config) {
 
-	dir := filepath.Join(cfg.LogsPath, "session/access.log")
-	dir2 := filepath.Join(cfg.LogsPath, "bff/access.log")
-	rootDires := []string{dir, dir2}
-
-	for _, filePath := range rootDires {
-		log.Println("start extracting traces on ", filePath)
-		var wg sync.WaitGroup
-
-		var limit int64 = 100 * mb
-
-		file, err := os.Open(filePath)
-		if err != nil {
-			panic(err)
-		}
-		defer file.Close()
-
-		fileInfo, err := file.Stat()
-		if err != nil {
-			panic(err)
-		}
-		fileSize := fileInfo.Size()
-
-		numChunks := int(fileSize / limit)
-		if fileSize%limit > 0 {
-			numChunks++
-		}
-
-		for i := 0; i < numChunks; i++ {
-			wg.Add(1)
-			go func(start int64) {
-				defer wg.Done()
-				readTraces(start, limit, filePath, pastTime, cfg)
-			}(int64(i) * limit)
-		}
-
-		wg.Wait()
-		log.Println("end extracting traces on ", filePath)
+	err := godotenv.Load()
+	if err != nil {
+		panic(err)
 	}
-}
+	limit_str := os.Getenv("CHUNCK_SIZE_LIMIT")
+	limit32 , err := strconv.Atoi(limit_str)
+	if err != nil {
+		panic(err)
+	}
+	limitEnv := int64(limit32)
+	limit = limitEnv * mb
 
+    dir := filepath.Join(cfg.LogsPath, "session/access.log")
+    dir2 := filepath.Join(cfg.LogsPath, "bff/access.log")
+    rootDires := []string{dir, dir2}
+	var rootWg sync.WaitGroup
+
+    for _, filePath := range rootDires {
+
+	rootWg.Add(1)
+	go func(filePath string){
+		defer rootWg.Done()
+		start_offset, err := findLogOffsetReverse(filePath, pastTime)
+		if err != nil {
+			panic(err)
+		}
+        log.Println("start extracting traces on ", filePath)
+        var wg sync.WaitGroup
+
+        file, err := os.Open(filePath)
+        if err != nil {
+            panic(err)
+        }
+        defer file.Close()
+
+        fileInfo, err := file.Stat()
+        if err != nil {
+            panic(err)
+        }
+        fileSize := fileInfo.Size()
+
+        if start_offset >= fileSize {
+            log.Println("Start offset is beyond file size for", filePath)
+            return
+        }
+
+        
+        numChunks := int((fileSize - start_offset) / limit)
+        if (fileSize-start_offset)%limit > 0 {
+            numChunks++
+        }
+
+        for j := 0; j < numChunks; j++ {
+            wg.Add(1)
+            go func(start int64) {
+                defer wg.Done()
+                readTraces(start, limit, filePath, pastTime, cfg)
+            }(start_offset + int64(j)*limit)
+        }
+
+        wg.Wait()
+        log.Println("end extracting traces on ", filePath)
+		}(filePath) 
+    }
+	rootWg.Wait()
+}
 func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, cfg *configs.Config) {
 
 	file, err := os.Open(fileName)
@@ -111,12 +144,15 @@ func readTraces(offset int64, limit int64, fileName string, pastTime time.Time, 
 		}
 	}
 }
-
 func ProcessFileLogs(pastTime time.Time, filePath string) {
 	log.Println("start matching logs with traces in ", filePath)
-	var wg sync.WaitGroup
+	start_offset, err := findLogOffsetReverse(filePath, pastTime)
+		if err != nil {
+			log.Println("didnt find anything in ", filePath)
+			return
+		}
 
-	var limit int64 = 100 * mb
+	var wg sync.WaitGroup
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -131,19 +167,88 @@ func ProcessFileLogs(pastTime time.Time, filePath string) {
 
 	fileSize := fileInfo.Size()
 
-	numChunks := int(fileSize / limit)
-	if fileSize%limit > 0 {
-		numChunks++
+
+	if start_offset >= fileSize {
+		log.Println("Start offset is beyond file size for", filePath)
+		return
 	}
+
+	numChunks := int((fileSize - start_offset) / limit)
+        if (fileSize-start_offset)%limit > 0 {
+            numChunks++
+        }
 
 	for i := 0; i < numChunks; i++ {
 		wg.Add(1)
 		go func(start int64) {
 			defer wg.Done()
 			static_utils.Read(start, limit, filePath, pastTime, traces)
-		}(int64(i) * limit)
+		}(start_offset + int64(i) * limit)
 	}
 
 	wg.Wait()
 	log.Println("end matching logs with traces in ", filePath)
+}
+func findLogOffsetReverse(filename string, pastTime time.Time) (int64, error) {
+	
+	file, err := os.Open(filename)
+	if err != nil {
+		return 0, err
+	}
+	defer file.Close()
+
+	
+	stat, err := file.Stat()
+	if err != nil {
+		return 0, err
+	}
+	fileSize := stat.Size()
+
+	var offset int64 = fileSize
+	var buffer bytes.Buffer
+	var chunk = make([]byte, chunkSize)
+
+	for offset > 0 {
+	
+		readSize := chunkSize
+		if offset < chunkSize {
+			readSize = int(offset)
+		}
+
+		
+		offset -= int64(readSize)
+
+		
+		_, err := file.ReadAt(chunk[:readSize], offset)
+		if err != nil {
+			return 0, err
+		}
+
+		
+		for i := len(chunk[:readSize]) - 1; i >= 0; i-- {
+			buffer.WriteByte(chunk[i])
+			if chunk[i] == '\n' || offset == 0 {
+				
+				line := reverseString(buffer.String())
+				buffer.Reset()
+
+				if line != "" {
+					timestamp := utils.ExtractTimeFromLog(line)
+
+					if timestamp.Before(pastTime) && !timestamp.IsZero(){
+							return offset, nil
+						}
+				}
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("log not found")
+}
+func reverseString(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }
